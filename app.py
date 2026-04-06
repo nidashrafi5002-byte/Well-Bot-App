@@ -532,23 +532,38 @@ if not st.session_state.viewing_history:
         with st.chat_message("assistant"):
             st.markdown(reply)
         # TTS - speak reply
-        clean = reply.replace("'", "\\'").replace("\n", " ").replace('"', '\\"')[:500]
-        st_html(f"""
+        clean = reply.replace("`", "").replace("'", "\\'").replace("\n", " ").replace('"', '\\"')
+        st.markdown(f"""
         <button onclick="speakText()" style="
             background: linear-gradient(135deg,#667eea,#764ba2);
             color:white; border:none; border-radius:8px;
-            padding:6px 14px; cursor:pointer; font-size:13px; margin-top:4px;">
+            padding:8px 16px; cursor:pointer; font-size:13px; margin-top:4px;">
             🔊 Read Aloud
+        </button>
+        <button onclick="window.speechSynthesis.cancel()" style="
+            background: rgba(255,255,255,0.1);
+            color:white; border:1px solid rgba(255,255,255,0.2); border-radius:8px;
+            padding:8px 16px; cursor:pointer; font-size:13px; margin-top:4px; margin-left:6px;">
+            ⏹ Stop
         </button>
         <script>
         function speakText() {{
             window.speechSynthesis.cancel();
-            var u = new SpeechSynthesisUtterance('{clean}');
-            u.lang = '{lang_locale}'; u.rate = 0.95;
-            window.speechSynthesis.speak(u);
+            var text = '{clean}';
+            var chunks = text.match(/.{{1,200}}(\\s|$)/g) || [text];
+            var i = 0;
+            function speakNext() {{
+                if (i >= chunks.length) return;
+                var u = new SpeechSynthesisUtterance(chunks[i++]);
+                u.lang = '{lang_locale}';
+                u.rate = 0.95;
+                u.onend = speakNext;
+                window.speechSynthesis.speak(u);
+            }}
+            speakNext();
         }}
         </script>
-        """, height=50)
+        """, unsafe_allow_html=True)
 else:
     st.info("Viewing a past session. Start a new chat to continue.")
 
