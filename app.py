@@ -567,16 +567,5 @@ with col2:
         st.session_state.viewing_history = False
         st.rerun()
 
-final_chat = [m for m in st.session_state.messages if m["role"] != "system"]
-if final_chat:
-    try:
-        pdf_data = generate_pdf(st.session_state.messages, profile)
-        st.download_button(
-            label="📄 Download Report",
-            data=pdf_data,
-            file_name=f"wellbot_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
-            mime="application/pdf"
-        )
-    except Exception as e:
-        import traceback
-        st.error(traceback.format_exc())
+
+
