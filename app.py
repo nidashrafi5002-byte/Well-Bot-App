@@ -104,9 +104,14 @@ def get_font():
     if not os.path.exists(font_path):
         import urllib.request
         urllib.request.urlretrieve(
-            "https://github.com/dejavu-fonts/dejavu-fonts/raw/refs/heads/master/ttf/DejaVuSans.ttf",
-            font_path
+            "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip",
+            "dejavu.zip"
         )
+        import zipfile
+        with zipfile.ZipFile("dejavu.zip") as z:
+            with z.open("dejavu-fonts-ttf-2.37/ttf/DejaVuSans.ttf") as src, open(font_path, "wb") as dst:
+                dst.write(src.read())
+        os.remove("dejavu.zip")
     return font_path
 
 def generate_pdf(messages, profile=None):
