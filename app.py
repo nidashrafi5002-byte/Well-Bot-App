@@ -96,83 +96,81 @@ def save_profile(profile):
     with open(PROFILE_FILE, "w") as f:
         json.dump(profile, f)
 
+def clean_text(text):
+    return text.encode("latin-1", "replace").decode("latin-1")
+
 def generate_pdf(messages, profile=None):
+    from fpdf.enums import XPos, YPos
     pdf = FPDF()
+    pdf.set_margins(15, 15, 15)
     pdf.add_page()
-    font_path = "C:/Windows/Fonts/arial.ttf"
-    if os.path.exists(font_path):
-        pdf.add_font("Arial", "", font_path, uni=True)
-        pdf.add_font("Arial", "B", font_path, uni=True)
-        fn = "Arial"
-    else:
-        fn = "Helvetica"
 
     pdf.set_fill_color(0, 102, 204)
-    pdf.rect(0, 0, 210, 30, 'F')
+    pdf.rect(0, 0, 210, 28, 'F')
     pdf.set_text_color(255, 255, 255)
-    pdf.set_font(fn, "B", 20)
-    pdf.set_y(8)
-    pdf.cell(0, 10, "WellBot - Health Assessment Report", ln=True, align="C")
-    pdf.set_font(fn, "", 9)
-    pdf.cell(0, 6, f"Generated on {datetime.datetime.now().strftime('%B %d, %Y at %H:%M')}", ln=True, align="C")
-    pdf.ln(10)
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.set_y(5)
+    pdf.cell(0, 10, "WellBot - Health Assessment Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 6, f"Generated on {datetime.datetime.now().strftime('%B %d, %Y at %H:%M')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.ln(8)
     pdf.set_text_color(0, 0, 0)
 
     if profile and profile.get("name"):
-        pdf.set_font(fn, "B", 11)
+        pdf.set_font("Helvetica", "B", 11)
         pdf.set_text_color(0, 102, 204)
-        pdf.cell(0, 8, "Patient Information", ln=True)
+        pdf.cell(0, 8, "Patient Information", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_draw_color(0, 102, 204)
-        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.line(15, pdf.get_y(), 195, pdf.get_y())
         pdf.ln(2)
-        pdf.set_font(fn, "", 10)
+        pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 7, f"Name: {profile.get('name', '-')}   Age: {profile.get('age', '-')}   Blood Group: {profile.get('blood_group', '-')}", ln=True)
-        pdf.cell(0, 7, f"Known Conditions: {profile.get('conditions', 'None')}", ln=True)
-        pdf.ln(4)
+        pdf.cell(0, 7, clean_text(f"Name: {profile.get('name','-')}   Age: {profile.get('age','-')}   Blood Group: {profile.get('blood_group','-')}"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 7, clean_text(f"Known Conditions: {profile.get('conditions','None')}"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(3)
 
     pdf.set_fill_color(255, 243, 205)
     pdf.set_draw_color(255, 193, 7)
-    pdf.set_font(fn, "B", 9)
+    pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(133, 100, 4)
-    pdf.multi_cell(0, 7, "DISCLAIMER: This report contains general health guidance only and is not a substitute for professional medical advice. Please consult a qualified healthcare provider for diagnosis and treatment.", border=1, fill=True)
-    pdf.ln(6)
+    pdf.multi_cell(0, 7, "DISCLAIMER: This report contains general health guidance only. It is not a substitute for professional medical advice. Please consult a qualified healthcare provider.", border=1, fill=True)
+    pdf.ln(5)
 
-    pdf.set_font(fn, "B", 13)
+    pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(0, 102, 204)
-    pdf.cell(0, 8, "Reported Symptoms", ln=True)
+    pdf.cell(0, 8, "Reported Symptoms", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_draw_color(0, 102, 204)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(3)
-    pdf.set_font(fn, "", 10)
+    pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(0, 0, 0)
     for msg in messages:
         if msg["role"] == "user":
             pdf.set_fill_color(240, 248, 255)
-            pdf.multi_cell(0, 7, f"- {msg['content']}", fill=True)
+            pdf.multi_cell(0, 7, clean_text(f"- {msg['content']}"), fill=True)
             pdf.ln(1)
 
-    pdf.ln(4)
-    pdf.set_font(fn, "B", 13)
-    pdf.set_text_color(0, 153, 76)
-    pdf.cell(0, 8, "Health Guidance & Recommendations", ln=True)
-    pdf.set_draw_color(0, 153, 76)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(3)
-    pdf.set_font(fn, "", 10)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_text_color(0, 153, 76)
+    pdf.cell(0, 8, "Health Guidance & Recommendations", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_draw_color(0, 153, 76)
+    pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(0, 0, 0)
     for msg in messages:
         if msg["role"] == "assistant":
             pdf.set_fill_color(240, 255, 245)
-            pdf.multi_cell(0, 7, msg["content"], fill=True)
+            pdf.multi_cell(0, 7, clean_text(msg["content"]), fill=True)
             pdf.ln(3)
 
-    pdf.set_y(-20)
+    pdf.set_y(-18)
     pdf.set_draw_color(200, 200, 200)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.set_font(fn, "", 8)
+    pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+    pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(150, 150, 150)
-    pdf.cell(0, 8, "This report was generated by WellBot - For informational purposes only.", align="C")
+    pdf.cell(0, 8, "Generated by WellBot - For informational purposes only.", align="C")
     return bytes(pdf.output())
 
 # ── Page config ──
@@ -549,15 +547,3 @@ with col2:
         st.session_state.viewing_history = False
         st.rerun()
 
-final_chat = [m for m in st.session_state.messages if m["role"] != "system"]
-if final_chat:
-    try:
-        pdf_data = generate_pdf(st.session_state.messages, profile)
-        st.download_button(
-            label="📄 Download Report",
-            data=pdf_data,
-            file_name=f"wellbot_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
-            mime="application/pdf"
-        )
-    except Exception as e:
-        st.error(f"PDF error: {e}")
