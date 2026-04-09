@@ -396,6 +396,48 @@ with st.sidebar:
 
     st.markdown("---")
 
+    # BMI Calculator
+    st.markdown("### ⚖️ BMI Calculator")
+    with st.expander("Calculate BMI"):
+        weight = st.number_input("Weight (kg)", min_value=1.0, max_value=300.0, value=60.0, step=0.5)
+        height = st.number_input("Height (cm)", min_value=50.0, max_value=250.0, value=165.0, step=0.5)
+        if st.button("Calculate"):
+            bmi = weight / ((height / 100) ** 2)
+            if bmi < 18.5:
+                cat, color = "Underweight", "#64b5f6"
+            elif bmi < 25:
+                cat, color = "Normal weight", "#81c784"
+            elif bmi < 30:
+                cat, color = "Overweight", "#ffb74d"
+            else:
+                cat, color = "Obese", "#e57373"
+            st.markdown(f'<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;text-align:center;border-left:4px solid {color}"><div style="font-size:1.8rem;font-weight:700;color:{color}">{bmi:.1f}</div><div style="color:{color};font-size:13px">{cat}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # Medicine Reminder
+    st.markdown("### 💊 Medicine Reminders")
+    if "medicines" not in st.session_state:
+        st.session_state.medicines = []
+    with st.expander("Add Reminder"):
+        med_name = st.text_input("Medicine name", key="med_name")
+        med_time = st.time_input("Time", key="med_time")
+        if st.button("Add"):
+            if med_name:
+                st.session_state.medicines.append({"name": med_name, "time": str(med_time)})
+                st.rerun()
+    if st.session_state.medicines:
+        for i, med in enumerate(st.session_state.medicines):
+            c1, c2 = st.columns([4, 1])
+            c1.markdown(f'<div style="background:rgba(102,126,234,0.1);border-radius:8px;padding:8px 10px;font-size:13px;">💊 {med["name"]}<br><span style="color:#90a4ae;font-size:11px;">⏰ {med["time"]}</span></div>', unsafe_allow_html=True)
+            if c2.button("✕", key=f"del_{i}"):
+                st.session_state.medicines.pop(i)
+                st.rerun()
+    else:
+        st.caption("No reminders added yet.")
+
+    st.markdown("---")
+
     # Language
     st.markdown("### 🌐 Language")
     selected_lang_key = st.selectbox("Choose language", list(LANGUAGES.keys()), key="language")
@@ -456,13 +498,11 @@ chat_only = [m for m in st.session_state.messages if m["role"] != "system"]
 if not chat_only and not st.session_state.viewing_history:
     st.markdown("#### 🩹 Common Symptoms — tap to ask:")
     suggestions = [
-        ("🌡️", "I have a fever"), ("🤕", "I have a headache"), ("🤢", "I feel nauseous"),
-        ("😮", "I have a sore throat"), ("😵", "I feel dizzy"), ("💔", "I have chest pain"),
-        ("😴", "I can't sleep"), ("🦴", "I have back pain"), ("😓", "I feel very tired"), ("🤧", "I have a cold"),
+        ("🌡️", "I have a fever"), ("🤕", "I have a headache"),
     ]
-    cols = st.columns(5)
+    cols = st.columns(2)
     for i, (icon, s) in enumerate(suggestions):
-        if cols[i % 5].button(f"{icon} {s}", key=f"sug_{i}"):
+        if cols[i % 2].button(f"{icon} {s}", key=f"sug_{i}"):
             st.session_state.suggested_input = s
             st.rerun()
     st.markdown("<br>", unsafe_allow_html=True)
@@ -533,37 +573,58 @@ if not st.session_state.viewing_history:
             st.markdown(reply)
         # TTS - speak reply
         clean = reply.replace("`", "").replace("'", "\\'").replace("\n", " ").replace('"', '\\"')
-        st.markdown(f"""
-        <button onclick="speakText()" style="
+        st_html(f"""
+        <button id="ttsBtn" onclick="speakText()" style="
             background: linear-gradient(135deg,#667eea,#764ba2);
             color:white; border:none; border-radius:8px;
             padding:8px 16px; cursor:pointer; font-size:13px; margin-top:4px;">
             🔊 Read Aloud
         </button>
-        <button onclick="window.speechSynthesis.cancel()" style="
+        <button onclick="stopText()" style="
             background: rgba(255,255,255,0.1);
             color:white; border:1px solid rgba(255,255,255,0.2); border-radius:8px;
             padding:8px 16px; cursor:pointer; font-size:13px; margin-top:4px; margin-left:6px;">
             ⏹ Stop
         </button>
         <script>
-        function speakText() {{
-            window.speechSynthesis.cancel();
-            var text = '{clean}';
-            var chunks = text.match(/.{{1,200}}(\\s|$)/g) || [text];
-            var i = 0;
-            function speakNext() {{
-                if (i >= chunks.length) return;
-                var u = new SpeechSynthesisUtterance(chunks[i++]);
-                u.lang = '{lang_locale}';
-                u.rate = 0.95;
-                u.onend = speakNext;
-                window.speechSynthesis.speak(u);
-            }}
-            speakNext();
+        var ttsText = '{clean}';
+        var chunks = ttsText.match(/.{{1,180}}(\\s|$)/g) || [ttsText];
+        var idx = 0;
+        var speaking = false;
+
+        function speakNext() {{
+            if (idx >= chunks.length) {{ speaking = false; return; }}
+            var u = new SpeechSynthesisUtterance(chunks[idx++]);
+            u.lang = '{lang_locale}';
+            u.rate = 0.95;
+            u.onend = speakNext;
+            u.onerror = function() {{ idx++; speakNext(); }};
+            speechSynthesis.speak(u);
         }}
+
+        function speakText() {{
+            speechSynthesis.cancel();
+            idx = 0;
+            speaking = true;
+            // Small delay needed for some browsers
+            setTimeout(speakNext, 100);
+        }}
+
+        function stopText() {{
+            speechSynthesis.cancel();
+            idx = chunks.length;
+            speaking = false;
+        }}
+
+        // Workaround for Chrome bug that pauses after ~15s
+        setInterval(function() {{
+            if (speaking && speechSynthesis.speaking) {{
+                speechSynthesis.pause();
+                speechSynthesis.resume();
+            }}
+        }}, 10000);
         </script>
-        """, unsafe_allow_html=True)
+        """, height=55)
 else:
     st.info("Viewing a past session. Start a new chat to continue.")
 
