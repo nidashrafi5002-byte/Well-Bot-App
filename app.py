@@ -9,8 +9,9 @@ import datetime
 from streamlit.components.v1 import html as st_html
 
 load_dotenv()
-api_key = st.secrets.get("GROQ_API_KEY") if hasattr(st, "secrets") else None
-if not api_key:
+try:
+    api_key = st.secrets["GROQ_API_KEY"]
+except:
     api_key = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=api_key)
 
