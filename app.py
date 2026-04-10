@@ -9,7 +9,11 @@ import datetime
 from streamlit.components.v1 import html as st_html
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+api_key = st.secrets.get("GROQ_API_KEY") if hasattr(st, "secrets") else None
+if not api_key:
+    api_key = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=api_key)
+
 
 HISTORY_FILE = "chat_history.json"
 PROFILE_FILE = "user_profile.json"
